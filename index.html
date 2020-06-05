@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pointum</title>
+    <script>
+      function pickyPicky(form) {
+        var num_colors = Number(form.colors.value);
+        var radius = Number(form.radius.value);
+        var file = form.image.files[0];
+
+        var reader = new FileReader();
+        reader.onloadend = function () {
+          document.getElementById("display").src = reader.result;
+        }
+        if (file) {
+          reader.readAsDataURL(file);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Pointum</h1>
+    <div>
+      <form id="config" action="javascript:pickyPicky(this);">
+        <table>
+          <tr>
+            <td><label for="colors">Number of Colors:</label></td>
+            <td><input type="number" id="colors" value=8></td>
+          </tr>
+          <tr>
+            <td><label for="raius">Picky Radius:</label></td>
+            <td><input type="number" id="radius" value=16></td>
+          </tr>
+          <tr>
+            <td><label for="image">Reference Image:</label></td>
+            <td><input type="file" id="image" accept="image/*"></td>
+          </tr>
+          <tr>
+            <td><input type="submit" value="Picky"></td>
+          </tr>
+        </table>
+      </form>
+    </div>
+    <div>
+      <img src="" id="display" width=500>
+    </div>
+  </body>
+</html>
