@@ -38,9 +38,21 @@
           ctx.drawImage(img, 0, 0, img.width, img.height);
           var idt = ctx.getImageData(0, 0, cvs.width, cvs.height);
 
-          for (var i = 0; i < 100; ++i) {
-            for (var j = 0; j < 100; ++j) {
-              setPixelXY(idt, i, j, 0, 0, 0, 255);
+          var original = [];
+          for (var i = 0; i < cvs.height; ++i) {
+            row = [];
+            for (var j = 0; j < cvs.width; ++j) {
+              row.push(getPixelXY(idt, i, j).slice(0, 3));
+            }
+            original.push(row);
+          }
+
+          var picked = original;
+
+          for (var i = 0; i < cvs.height; ++i) {
+            for (var j = 0; j < cvs.width; ++j) {
+              setPixelXY(idt, i, j,
+                  picked[i][j][0], picked[i][j][1], picked[i][j][2], 255);
             }
           }
 
