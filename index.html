@@ -42,16 +42,37 @@
           for (var i = 0; i < cvs.height; ++i) {
             row = [];
             for (var j = 0; j < cvs.width; ++j) {
-              row.push(getPixelXY(idt, i, j).slice(0, 3));
+              row.push(getPixelXY(idt, j, i).slice(0, 3));
             }
             original.push(row);
           }
 
-          var picked = original;
+          var colors = [];
+          var average_color = [0, 0, 0];
+          for (var row of original) {
+            for (var color of row) {
+              average_color[0] += color[0];
+              average_color[1] += color[1];
+              average_color[2] += color[2];
+            }
+          }
+          average_color[0] /= cvs.height * cvs.width;
+          average_color[1] /= cvs.height * cvs.width;
+          average_color[2] /= cvs.height * cvs.width;
+          colors.push(average_color);
+
+          var picked = [];
+          for (var i = 0; i < cvs.height; ++i) {
+            row = [];
+            for (var j = 0; j < cvs.width; ++j) {
+              row.push(average_color);
+            }
+            picked.push(row);
+          }
 
           for (var i = 0; i < cvs.height; ++i) {
             for (var j = 0; j < cvs.width; ++j) {
-              setPixelXY(idt, i, j,
+              setPixelXY(idt, j, i,
                   picked[i][j][0], picked[i][j][1], picked[i][j][2], 255);
             }
           }
