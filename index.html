@@ -21,7 +21,19 @@
       }
 
       function setPixelXY(imgData, x, y, r, g, b, a) {
-        return setPixel(imgData, y*imgData.width+x, r, g, b, a);
+        setPixel(imgData, y*imgData.width+x, r, g, b, a);
+      }
+
+      function circularMask(radius) {
+        mask = [];
+        for (i = 0; i < 2 * radius; ++i) {
+          row = [];
+          for (j = 0; j < 2 * radius; ++j) {
+            row.push(Math.pow(i - radius + 0.5, 2)
+                + Math.pow(j - radius + 0.5, 2) < Math.pow(radius, 2));
+          }
+          mask.push(row);
+        }
       }
 
       function pickyPicky(form) {
@@ -31,13 +43,13 @@
 
         var img = document.getElementById("display");
         img.addEventListener("load", function () {
+          // Read image to canvas,
           var cvs = document.createElement('canvas');
           cvs.width = img.width;
           cvs.height = img.height;
           var ctx = cvs.getContext("2d");
           ctx.drawImage(img, 0, 0, img.width, img.height);
           var idt = ctx.getImageData(0, 0, cvs.width, cvs.height);
-
           var original = [];
           for (var i = 0; i < cvs.height; ++i) {
             row = [];
@@ -47,6 +59,7 @@
             original.push(row);
           }
 
+          // Caluclate average color
           var colors = [];
           var average_color = [0, 0, 0];
           for (var row of original) {
@@ -61,6 +74,7 @@
           average_color[2] /= cvs.height * cvs.width;
           colors.push(average_color);
 
+          // Initialize picked image with average color.
           var picked = [];
           for (var i = 0; i < cvs.height; ++i) {
             row = [];
@@ -69,14 +83,18 @@
             }
             picked.push(row);
           }
+          
+          // Create picky and kernel.
+          picky = circularMask(radius);
+          kernel = circularMask(2 * radius);
 
+          // Write to image.
           for (var i = 0; i < cvs.height; ++i) {
             for (var j = 0; j < cvs.width; ++j) {
               setPixelXY(idt, j, i,
                   picked[i][j][0], picked[i][j][1], picked[i][j][2], 255);
             }
           }
-
           ctx.putImageData(idt, 0, 0);
           img.src = cvs.toDataURL();
         });
