@@ -24,15 +24,61 @@
         setPixel(imgData, y*imgData.width+x, r, g, b, a);
       }
 
-      function circularMask(radius) {
-        mask = [];
-        for (i = 0; i < 2 * radius; ++i) {
-          row = [];
-          for (j = 0; j < 2 * radius; ++j) {
-            row.push(Math.pow(i - radius + 0.5, 2)
-                + Math.pow(j - radius + 0.5, 2) < Math.pow(radius, 2));
+      function pixelDistance(a, b) {
+        return Math.sqrt(Math.pow(a[0] - b[0], 2)
+            + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
+      }
+
+      function applyKernel(residue, x, y, radius) {
+        var kernel_sum = 0;
+        var kernel_size = 0;
+        for (i = -radius; i < radius; ++i) {
+          for (j = -radius; j < radius; ++j) {
+            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
+                < Math.pow(radius, 2)
+                && x + i >= 0 && y + j >= 0
+                && x + i < residue.length && y + j < residue[0].length) {
+              kernel_sum += residue[x + i][y + j];
+              ++kernel_size;
+            }
           }
-          mask.push(row);
+        }
+        return kernel_sum / kernel_size;
+      }
+
+      function averageColor(original, x, y, radius) {
+        var color = [0, 0, 0];
+        var color_size = 0;
+        for (i = -radius; i < radius; ++i) {
+          for (j = -radius; j < radius; ++j) {
+            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
+                < Math.pow(radius, 2)
+                && x + i >= 0 && y + j >= 0
+                && x + i < original.length && y + j < original[0].length) {
+              color[0] += original[x + i][y + j][0];
+              color[1] += original[x + i][y + j][1];
+              color[2] += original[x + i][y + j][2];
+              ++color_size;
+            }
+          }
+        }
+        return [color[0] / color_size,
+                color[1] / color_size,
+                color[2] / color_size];
+      }
+
+      function applyPicky(original, x, y, radius, color) {
+        for (i = -radius; i < radius; ++i) {
+          for (j = -radius; j < radius; ++j) {
+            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
+                < Math.pow(radius, 2)
+                && x + i >= 0 && y + j >= 0
+                && x + i < original.length && y + j < original[0].length) {
+              original[x + i][y + j][0] = color[0];
+              original[x + i][y + j][1] = color[1];
+              original[x + i][y + j][2] = color[2];
+            }
+          }
         }
       }
 
@@ -40,6 +86,7 @@
         var num_colors = Number(form.colors.value);
         var radius = Number(form.radius.value);
         var file = form.image.files[0];
+        var is_first_frame = true;
 
         var img = document.getElementById("display");
         img.addEventListener("load", function () {
@@ -52,41 +99,72 @@
           var idt = ctx.getImageData(0, 0, cvs.width, cvs.height);
           var original = [];
           for (var i = 0; i < cvs.height; ++i) {
-            row = [];
+            var row = [];
             for (var j = 0; j < cvs.width; ++j) {
               row.push(getPixelXY(idt, j, i).slice(0, 3));
             }
             original.push(row);
           }
 
-          // Caluclate average color
-          var colors = [];
-          var average_color = [0, 0, 0];
-          for (var row of original) {
-            for (var color of row) {
-              average_color[0] += color[0];
-              average_color[1] += color[1];
-              average_color[2] += color[2];
+          if (is_first_frame) {
+            // Caluclate average color
+            colors = [];
+            var average_color = [0, 0, 0];
+            for (var row of original) {
+              for (var color of row) {
+                average_color[0] += color[0];
+                average_color[1] += color[1];
+                average_color[2] += color[2];
+              }
             }
-          }
-          average_color[0] /= cvs.height * cvs.width;
-          average_color[1] /= cvs.height * cvs.width;
-          average_color[2] /= cvs.height * cvs.width;
-          colors.push(average_color);
+            average_color[0] /= cvs.height * cvs.width;
+            average_color[1] /= cvs.height * cvs.width;
+            average_color[2] /= cvs.height * cvs.width;
+            colors.push(average_color);
 
-          // Initialize picked image with average color.
-          var picked = [];
-          for (var i = 0; i < cvs.height; ++i) {
-            row = [];
-            for (var j = 0; j < cvs.width; ++j) {
-              row.push(average_color);
+            // Initialize picked image with average color and calculate residue.
+            picked = [];
+            var residue = [];
+            for (var i = 0; i < cvs.height; ++i) {
+              var picked_row = [];
+              var residue_row = [];
+              for (var j = 0; j < cvs.width; ++j) {
+                picked_row.push(average_color);
+                residue_row.push(pixelDistance(original[i][j], average_color));
+              }
+              picked.push(picked_row);
+              residue.push(residue_row);
             }
-            picked.push(row);
+            
+            // Initialize coarse residue,
+            var residue_step = Math.ceil(radius / 2);
+            coarse_residue = []
+            for (var i = 0; i < cvs.height; i+= residue_step) {
+              var row = [];
+              for (var j = 0; j < cvs.width; j+= residue_step) {
+                row.push(applyKernel(residue, i, j,  radius));
+              }
+              coarse_residue.push(row);
+            }
+            is_first_frame = false;
           }
-          
-          // Create picky and kernel.
-          picky = circularMask(radius);
-          kernel = circularMask(2 * radius);
+
+          // Find max residue.
+          var max_residue = 0;
+          var maxx = 0;
+          var maxy = 0;
+          for (var i = 0; i < coarse_residue.length; ++i) {
+            for (var j = 0; j < coarse_residue[i].length; ++j) {
+              if (coarse_residue[i][j] > max_residue) {
+                max_residue = coarse_residue[i][j];
+                maxx = i;
+                maxy = j;
+              }
+            }
+          }
+
+          applyPicky(original, maxx, maxy, radius,
+                     averageColor(original, maxx, maxy, 2 * radius));
 
           // Write to image.
           for (var i = 0; i < cvs.height; ++i) {
