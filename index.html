@@ -15,8 +15,8 @@
       }
 
       function estimateColor(x, y) {
-        var originalSum = crownSum(original, x, y, 0, 2 * radius);
-        var outerSum = crownSum(current, x, y, radius, 2 * radius);
+        var originalSum = crownSum(original, x, y, 0, 3 * radius);
+        var outerSum = crownSum(current, x, y, radius, 3 * radius);
         var count = crownCount(current, x, y, 0, radius);
         var color = new Array(3);
         for (var i = 0; i < color.length; ++i) {
