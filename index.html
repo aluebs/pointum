@@ -3,216 +3,179 @@
   <head>
     <title>Pointum</title>
     <script>
-      function getPixel(imgData, index) {
-        return imgData.data.slice(index*4, index*4+4) // [R,G,B,A]
+      function rgb(r, g, b) {
+        return "rgb(" + r + "," + g + "," + b + ")";
       }
 
-      function getPixelXY(imgData, x, y) {
-        return getPixel(imgData, y*imgData.width+x);
+      function drawCircle(x, y, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = rgb(color[0], color[1], color[2]);
+        ctx.fill();
       }
 
-      function setPixel(imgData, index, r, g, b, a) {
-        var i = index*4;
-        var d = imgData.data;
-        d[i] = r;
-        d[i+1] = g;
-        d[i+2] = b;
-        d[i+3] = a;
+      function estimateColor(x, y) {
+        var originalSum = crownSum(original, x, y, 0, 2 * radius);
+        var outerSum = crownSum(current, x, y, radius, 2 * radius);
+        var count = crownCount(current, x, y, 0, radius);
+        var color = new Array(3);
+        for (var i = 0; i < color.length; ++i) {
+          color[i] = Math.round(Math.min(255, Math.max(0,
+                (originalSum[i] - outerSum[i]) / count)));
+        }
+        return color;
       }
 
-      function setPixelXY(imgData, x, y, r, g, b, a) {
-        setPixel(imgData, y*imgData.width+x, r, g, b, a);
+      function draw() {
+        var x = Math.floor(c.width * Math.random());
+        var y = Math.floor(c.height * Math.random());
+        var color = estimateColor(x, y);
+        crownSet(current, x, y, 0, radius, color);
+        drawCircle(x, y, color);
       }
 
-      function pixelDistance(a, b) {
-        return Math.sqrt(Math.pow(a[0] - b[0], 2)
-            + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
-      }
-
-      function applyKernel(residue, x, y, radius) {
-        var kernel_sum = 0;
-        var kernel_size = 0;
-        for (i = -radius; i < radius; ++i) {
-          for (j = -radius; j < radius; ++j) {
-            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
-                < Math.pow(radius, 2)
-                && x + i >= 0 && y + j >= 0
-                && x + i < residue.length && y + j < residue[0].length) {
-              kernel_sum += residue[x + i][y + j];
-              ++kernel_size;
+      function canvas2Array() {
+        var imgData = ctx.getImageData(0, 0, c.width, c.height).data;
+        var imgArray = new Array(c.width);
+        for (var i = 0; i < imgArray.length; ++i) {
+          imgArray[i] = new Array(c.height);
+          for (var j = 0; j < imgArray[i].length; ++j) {
+            imgArray[i][j] = new Array(3);
+            for (var k = 0; k < 3; ++k) {
+              imgArray[i][j][k] = imgData[4 * (i + j * c.width) + k];
             }
           }
         }
-        return kernel_sum / kernel_size;
+        return imgArray;
       }
 
-      function averageColor(original, x, y, radius) {
-        var color = [0, 0, 0];
-        var color_size = 0;
-        for (i = -radius; i < radius; ++i) {
-          for (j = -radius; j < radius; ++j) {
-            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
-                < Math.pow(radius, 2)
-                && x + i >= 0 && y + j >= 0
-                && x + i < original.length && y + j < original[0].length) {
-              color[0] += original[x + i][y + j][0];
-              color[1] += original[x + i][y + j][1];
-              color[2] += original[x + i][y + j][2];
-              ++color_size;
+      function array2Canvas(imgArray) {
+        var imgData = ctx.createImageData(c.width, c.height);
+        for (var i = 0; i < imgArray.length; ++i) {
+          for (var j = 0; j < imgArray[i].length; ++j) {
+            for (var k = 0; k < 3; ++k) {
+              imgData.data[4 * (i + j * c.width) + k] = imgArray[i][j][k];
+            }
+            imgData.data[4 * (i + j * c.width) + 3] = 255;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      function imgAverage(image) {
+        var average = [0, 0, 0];
+        for (var k = 0; k < 3; ++k) {
+          for (var i = 0; i < image.length; ++i) {
+            for (var j = 0; j < image[i].length; ++j) {
+              average[k] += image[i][j][k];
+            }
+          }
+          average[k] /= image.length * image[0].length;
+        }
+        return average;
+      }
+
+      function crownSum(image, x, y, minRadius, maxRadius) {
+        var sum = [0, 0, 0];
+        for (var i = -maxRadius; i <= maxRadius; ++i) {
+          for (var j = -maxRadius; j <= maxRadius; ++j) {
+            var xi = x + i;
+            var yj = y + j;
+            var r = Math.sqrt(Math.pow(i, 2) + Math.pow(j, 2));
+            if (xi >= 0 && xi < image.length && yj >= 0 && yj < image[xi].length
+                && r >= minRadius && r < maxRadius) {
+              for (var k = 0; k < 3; ++k) {
+                sum[k] += image[xi][yj][k];
+              }
             }
           }
         }
-        return [color[0] / color_size,
-                color[1] / color_size,
-                color[2] / color_size];
+        return sum;
       }
 
-      function applyPicky(original, x, y, radius, color) {
-        for (i = -radius; i < radius; ++i) {
-          for (j = -radius; j < radius; ++j) {
-            if (Math.pow(i + 0.5, 2) + Math.pow(j + 0.5, 2)
-                < Math.pow(radius, 2)
-                && x + i >= 0 && y + j >= 0
-                && x + i < original.length && y + j < original[0].length) {
-              original[x + i][y + j][0] = color[0];
-              original[x + i][y + j][1] = color[1];
-              original[x + i][y + j][2] = color[2];
+      function crownCount(image, x, y, minRadius, maxRadius) {
+        var count = 0;
+        for (var i = -maxRadius; i <= maxRadius; ++i) {
+          for (var j = -maxRadius; j <= maxRadius; ++j) {
+            var xi = x + i;
+            var yj = y + j;
+            var r = Math.sqrt(Math.pow(i, 2) + Math.pow(j, 2));
+            if (xi >= 0 && xi < image.length && yj >= 0 && yj < image[xi].length
+                && r >= minRadius && r < maxRadius) {
+              ++count;
+            }
+          }
+        }
+        return count;
+      }
+
+      function crownSet(image, x, y, minRadius, maxRadius, color) {
+        for (var i = -maxRadius; i <= maxRadius; ++i) {
+          for (var j = -maxRadius; j <= maxRadius; ++j) {
+            var xi = x + i;
+            var yj = y + j;
+            var r = Math.sqrt(Math.pow(i, 2) + Math.pow(j, 2));
+            if (xi >= 0 && xi < image.length && yj >= 0 && yj < image[xi].length
+                && r >= minRadius && r < maxRadius) {
+              image[xi][yj] = color;
             }
           }
         }
       }
 
-      function pickyPicky(form) {
-        var num_colors = Number(form.colors.value);
-        var radius = Number(form.radius.value);
-        var file = form.image.files[0];
-        var is_first_frame = true;
-
-        var img = document.getElementById("display");
-        img.addEventListener("load", function () {
-          // Read image to canvas,
-          var cvs = document.createElement('canvas');
-          cvs.width = img.width;
-          cvs.height = img.height;
-          var ctx = cvs.getContext("2d");
-          ctx.drawImage(img, 0, 0, img.width, img.height);
-          var idt = ctx.getImageData(0, 0, cvs.width, cvs.height);
-          var original = [];
-          for (var i = 0; i < cvs.height; ++i) {
-            var row = [];
-            for (var j = 0; j < cvs.width; ++j) {
-              row.push(getPixelXY(idt, j, i).slice(0, 3));
-            }
-            original.push(row);
+      function solidImage(color) {
+        var image = new Array(c.width);
+        for (var i = 0; i < image.length; ++i) {
+          image[i] = new Array(c.height);
+          for (var j = 0; j < image[i].length; ++j) {
+            image[i][j] = color;
           }
+        }
+        return image;
+      }
 
-          if (is_first_frame) {
-            // Caluclate average color
-            colors = [];
-            var average_color = [0, 0, 0];
-            for (var row of original) {
-              for (var color of row) {
-                average_color[0] += color[0];
-                average_color[1] += color[1];
-                average_color[2] += color[2];
-              }
-            }
-            average_color[0] /= cvs.height * cvs.width;
-            average_color[1] /= cvs.height * cvs.width;
-            average_color[2] /= cvs.height * cvs.width;
-            colors.push(average_color);
+      function loadImage() {
+        c.width = img.width;
+        c.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        original = canvas2Array();
+        current = solidImage(imgAverage(original));
+        array2Canvas(current);
+        setInterval(draw, 10);
+      }
 
-            // Initialize picked image with average color and calculate residue.
-            picked = [];
-            var residue = [];
-            for (var i = 0; i < cvs.height; ++i) {
-              var picked_row = [];
-              var residue_row = [];
-              for (var j = 0; j < cvs.width; ++j) {
-                picked_row.push(average_color);
-                residue_row.push(pixelDistance(original[i][j], average_color));
-              }
-              picked.push(picked_row);
-              residue.push(residue_row);
-            }
-            
-            // Initialize coarse residue,
-            var residue_step = Math.ceil(radius / 2);
-            coarse_residue = []
-            for (var i = 0; i < cvs.height; i+= residue_step) {
-              var row = [];
-              for (var j = 0; j < cvs.width; j+= residue_step) {
-                row.push(applyKernel(residue, i, j,  radius));
-              }
-              coarse_residue.push(row);
-            }
-            is_first_frame = false;
-          }
+      function loadReader(event) {
+        img = new Image();
+        img.onload = loadImage;
+        img.src = event.target.result;
+      }
 
-          // Find max residue.
-          var max_residue = 0;
-          var maxx = 0;
-          var maxy = 0;
-          for (var i = 0; i < coarse_residue.length; ++i) {
-            for (var j = 0; j < coarse_residue[i].length; ++j) {
-              if (coarse_residue[i][j] > max_residue) {
-                max_residue = coarse_residue[i][j];
-                maxx = i;
-                maxy = j;
-              }
-            }
-          }
-
-          applyPicky(original, maxx, maxy, radius,
-                     averageColor(original, maxx, maxy, 2 * radius));
-
-          // Write to image.
-          for (var i = 0; i < cvs.height; ++i) {
-            for (var j = 0; j < cvs.width; ++j) {
-              setPixelXY(idt, j, i,
-                  picked[i][j][0], picked[i][j][1], picked[i][j][2], 255);
-            }
-          }
-          ctx.putImageData(idt, 0, 0);
-          img.src = cvs.toDataURL();
-        });
-
+      function handleImage(e) {
+        radius = document.getElementById("radium").value;
+        c = document.getElementById("canvium");
+        ctx = c.getContext("2d");
         var reader = new FileReader();
-        reader.onloadend = function () {
-          img.src = reader.result;
-        }
+        reader.onload = loadReader;
+        reader.readAsDataURL(e.target.files[0]);
+      }
 
-        if (file) {
-          reader.readAsDataURL(file);
-        }
+      function onload() {
+        var filium = document.getElementById('filium');
+        filium.addEventListener('change', handleImage, false);
       }
     </script>
   </head>
-  <body>
+  <body onload="onload()">
     <h1>Pointum</h1>
     <div>
-      <form id="config" action="javascript:pickyPicky(this);">
-        <table>
-          <tr>
-            <td><label for="colors">Number of Colors:</label></td>
-            <td><input type="number" id="colors" value=8></td>
-          </tr>
-          <tr>
-            <td><label for="raius">Picky Radius:</label></td>
-            <td><input type="number" id="radius" value=16></td>
-          </tr>
-          <tr>
-            <td><label for="image">Reference Image:</label></td>
-            <td><input type="file" id="image" accept="image/*"></td>
-          </tr>
-          <tr>
-            <td><input type="submit" value="Picky"></td>
-          </tr>
-        </table>
-      </form>
+      <label for="radium">Radius: </label>
+      <input type="number" id="radium" value="10"/>
     </div>
     <div>
-      <img src="" id="display" width=500>
+      <input type="file" id="filium"/>
+    </div>
+    <div>
+      <canvas id="canvium" width="500" height="500" style="border:1px solid #000000;"></canvas>
     </div>
   </body>
 </html>
