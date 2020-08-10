@@ -151,17 +151,20 @@
       }
 
       function handleImage(e) {
+        console.log(e);
         radius = document.getElementById("radium").value;
-        c = document.getElementById("canvium");
         ctx = c.getContext("2d");
         var reader = new FileReader();
         reader.onload = loadReader;
-        reader.readAsDataURL(e.target.files[0]);
+        reader.readAsDataURL(e.files[0]);
+      }
+
+      function handleDownload(e) {
+        e.href = c.toDataURL("image/png");
       }
 
       function onload() {
-        var filium = document.getElementById('filium');
-        filium.addEventListener('change', handleImage, false);
+        c = document.getElementById("canvium");
       }
     </script>
   </head>
@@ -172,10 +175,12 @@
       <input type="number" id="radium" value="10"/>
     </div>
     <div>
-      <input type="file" id="filium"/>
+      <input type="file" id="filium" onchange="handleImage(this);"/>
     </div>
     <div>
-      <canvas id="canvium" width="500" height="500" style="border:1px solid #000000;"></canvas>
+      <a href="" id="downlium" download="picky.png" onclick="handleDownload(this);">
+        <canvas id="canvium" width="500" height="500" style="border:1px solid #000000;"></canvas>
+      </a>
     </div>
   </body>
 </html>
