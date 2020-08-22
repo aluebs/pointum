@@ -27,6 +27,7 @@
       }
 
       function draw() {
+        radius = document.getElementById("config").value;
         var x = Math.floor(c.width * Math.random());
         var y = Math.floor(c.height * Math.random());
         var color = estimateColor(x, y);
@@ -152,7 +153,6 @@
 
       function handleImage(e) {
         console.log(e);
-        radius = document.getElementById("radium").value;
         ctx = c.getContext("2d");
         var reader = new FileReader();
         reader.onload = loadReader;
@@ -163,6 +163,18 @@
         e.href = c.toDataURL("image/png");
       }
 
+      function handleTechnique(e) {
+        var configlabel = document.getElementById("configlabel");
+        var config = document.getElementById("config");
+        if (e.value == "pointillism") {
+          configlabel.innerHTML = "Radius: ";
+          config.value = "10";
+        } else if (e.value == "fauvism") {
+          configlabel.innerHTML = "Fauvism: ";
+          config.value = "";
+        }
+      }
+
       function onload() {
         c = document.getElementById("canvium");
       }
@@ -171,8 +183,15 @@
   <body onload="onload()">
     <h1>Pointum</h1>
     <div>
-      <label for="radium">Radius: </label>
-      <input type="number" id="radium" value="10"/>
+      <select id="technique" onchange="handleTechnique(this);">
+        <option disabled selected value></option>
+        <option value="pointillism">Pointillism</option>
+        <option value="fauvism">Fauvism</option>
+      </select>
+    </div>
+    <div>
+      <label for="config" id="configlabel"></label>
+      <input type="text" id="config" value=""/>
     </div>
     <div>
       <input type="file" id="filium" onchange="handleImage(this);"/>
