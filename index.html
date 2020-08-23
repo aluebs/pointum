@@ -166,11 +166,20 @@
       }
 
       function blackAndWhite(colorImg) {
+        var minl = 255;
+        var maxl = 0;
         var baw = new Array(colorImg.length);
         for (var i = 0; i < colorImg.length; ++i) {
           baw[i] = new Array(colorImg[i].length);
           for (var j = 0; j < colorImg[i].length; ++j) {
-            var l = luma(colorImg[i][j]);
+            baw[i][j] = luma(colorImg[i][j]);
+            minl = Math.min(minl, baw[i][j]);
+            maxl = Math.max(maxl, baw[i][j]);
+          }
+        }
+        for (var i = 0; i < baw.length; ++i) {
+          for (var j = 0; j < baw[i].length; ++j) {
+            var l = 255 * (baw[i][j] - minl) / (maxl - minl);
             baw[i][j] = [l, l, l];
           }
         }
