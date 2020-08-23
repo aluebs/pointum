@@ -192,8 +192,8 @@
         for (var i = 0; i < crisp.length; ++i) {
           blurred[i] = new Array(crisp[i].length);
           for (var j = 0; j < crisp[i].length; ++j) {
-            var sum = crownSum(crisp, i, j, 0, threshold / 5);
-            var count = crownCount(crisp, i, j, 0, threshold / 5);
+            var sum = crownSum(crisp, i, j, 0, Math.ceil(threshold / 4));
+            var count = crownCount(crisp, i, j, 0, Math.ceil(threshold / 4));
             blurred[i][j] = [sum[0] / count, sum[1] / count, sum[2] / count]; 
           }
         }
