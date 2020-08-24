@@ -42,7 +42,7 @@
       function spill(x, y, baw, color) {
         if (x >= 0 && x < current.length && y >= 0 && y < current[x].length &&
             isbaw(current[x][y]) &&
-            Math.abs(current[x][y][0] - baw) < 10) {
+            Math.abs(current[x][y][0] - baw) < 16) {
           current[x][y] = color;
           spill(x - 1, y, baw, color);
           spill(x + 1, y, baw, color);
@@ -235,9 +235,15 @@
       }
 
       function loadImage() {
-        c.width = img.width;
-        c.height = img.height;
-        ctx.drawImage(img, 0, 0);
+        var desiredDim = 512;
+        var minDim = Math.min(img.width, img.height);
+        var desiredWidth = img.width * desiredDim / minDim;
+        var desiredHeight = img.height * desiredDim / minDim;
+        var offsetX = (desiredDim - desiredWidth) / 2;
+        var offsetY = (desiredDim - desiredHeight) / 2;
+        c.width = desiredDim;
+        c.height = desiredDim;
+        ctx.drawImage(img, offsetX, offsetY, desiredWidth, desiredHeight);
         original = canvas2Array();
         if (technique == "pointillism") {
           current = solidImage(imgAverage(original));
@@ -273,10 +279,10 @@
         var config = document.getElementById("config");
         if (technique == "pointillism") {
           configlabel.innerHTML = "Radius: ";
-          config.value = "3";
+          config.value = "2";
         } else if (technique == "fauvism") {
           configlabel.innerHTML = "Radius: ";
-          config.value = "3";
+          config.value = "2";
         }
       }
 
@@ -302,8 +308,8 @@
       <input type="file" id="filium" onchange="handleImage(this);"/>
     </div>
     <div>
-      <a href="" id="downlium" download="picky.png" onclick="handleDownload(this);">
-        <canvas id="canvium" width="500" height="500" style="border:1px solid #000000;"></canvas>
+      <a href="" download="picky.png" onclick="handleDownload(this);">
+        <canvas id="canvium"></canvas>
       </a>
     </div>
   </body>
