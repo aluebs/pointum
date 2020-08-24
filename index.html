@@ -42,7 +42,7 @@
       function spill(x, y, baw, color) {
         if (x >= 0 && x < current.length && y >= 0 && y < current[x].length &&
             isbaw(current[x][y]) &&
-            Math.abs(current[x][y][0] - baw) < threshold) {
+            Math.abs(current[x][y][0] - baw) < 10) {
           current[x][y] = color;
           spill(x - 1, y, baw, color);
           spill(x + 1, y, baw, color);
@@ -187,13 +187,13 @@
       }
 
       function blur(crisp) {
-        threshold = document.getElementById("config").value;
+        var radius = document.getElementById("config").value;
         var blurred = new Array(crisp.length);
         for (var i = 0; i < crisp.length; ++i) {
           blurred[i] = new Array(crisp[i].length);
           for (var j = 0; j < crisp[i].length; ++j) {
-            var sum = crownSum(crisp, i, j, 0, Math.ceil(threshold / 4));
-            var count = crownCount(crisp, i, j, 0, Math.ceil(threshold / 4));
+            var sum = crownSum(crisp, i, j, 0, Math.ceil(radius));
+            var count = crownCount(crisp, i, j, 0, Math.ceil(radius));
             blurred[i][j] = [sum[0] / count, sum[1] / count, sum[2] / count]; 
           }
         }
@@ -205,46 +205,32 @@
         } else if (baw > 0.9 * 255) {
           return [255, 255, 0];
         } else {
-          while (true) {
-            switch (Math.floor(Math.random() * 6)) {
-              case 0:
-                var x = (baw - 0.25 * 255) / 0.65;
-                if (x >= 0 && x <= 255) {
-                  return [255, x, 0];
-                }
-                break;
-              case 1:
-                var x = (baw - 0.25 * 255) / 0.1;
-                if (x >= 0 && x <= 255) {
-                  return [255, 0, x];
-                }
-                break;
-              case 2:
-                var x = (baw - 0.65 * 255) / 0.25;
-                if (x >= 0 && x <= 255) {
-                  return [x, 255, 0];
-                }
-                break;
-              case 3:
-                var x = (baw - 0.65 * 255) / 0.1;
-                if (x >= 0 && x <= 255) {
-                  return [0, 255, x];
-                }
-                break;
-              case 4:
-                var x = (baw - 0.1 * 255) / 0.25;
-                if (x >= 0 && x <= 255) {
-                  return [x, 0, 255];
-                }
-                break;
-              case 5:
-                var x = (baw - 0.1 * 255) / 0.65;
-                if (x >= 0 && x <= 255) {
-                  return [0, x, 255];
-                }
-                break;
-            }
+          var options = [];
+          var x = (baw - 0.25 * 255) / 0.65;
+          if (x >= 0 && x <= 255) {
+            options.push([255, x, 0]);
           }
+          x = (baw - 0.25 * 255) / 0.1;
+          if (x >= 0 && x <= 255) {
+            options.push([255, 0, x]);
+          }
+          x = (baw - 0.65 * 255) / 0.25;
+          if (x >= 0 && x <= 255) {
+            options.push([x, 255, 0]);
+          }
+          x = (baw - 0.65 * 255) / 0.1;
+          if (x >= 0 && x <= 255) {
+            options.push([0, 255, x]);
+          }
+          x = (baw - 0.1 * 255) / 0.25;
+          if (x >= 0 && x <= 255) {
+            options.push([x, 0, 255]);
+          }
+          x = (baw - 0.1 * 255) / 0.65;
+          if (x >= 0 && x <= 255) {
+            options.push([0, x, 255]);
+          }
+          return options[Math.floor(Math.random() * options.length)];
         }
       }
 
@@ -289,8 +275,8 @@
           configlabel.innerHTML = "Radius: ";
           config.value = "3";
         } else if (technique == "fauvism") {
-          configlabel.innerHTML = "Threshold: ";
-          config.value = "10";
+          configlabel.innerHTML = "Radius: ";
+          config.value = "3";
         }
       }
 
