@@ -200,6 +200,7 @@
         }
         return blurred;
       }
+
       function baw2color(baw) {
         if (baw < 0.1 * 255) {
           return [0, 0, 255];
@@ -246,7 +247,7 @@
         c.height = desiredDim;
         ctx.drawImage(img, offsetX, offsetY, desiredWidth, desiredHeight);
         original = canvas2Array(c);
-        technique = document.getElementById("technique").value;
+        var technique = document.getElementById("technique").value;
         if (technique == "pointillism") {
           current = solidImage(desiredDim, desiredDim, imgAverage(original));
           array2Canvas(current);
