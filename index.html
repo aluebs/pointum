@@ -7,14 +7,14 @@
         return "rgb(" + color[0] + "," + color[1] + "," + color[2] + ")";
       }
 
-      function drawCircle(x, y, color) {
+      function drawCircle(x, y, radius, color) {
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, 2 * Math.PI);
         ctx.fillStyle = rgb(color);
         ctx.fill();
       }
 
-      function estimateColor(x, y) {
+      function estimateColor(x, y, radius) {
         var originalSum = crownSum(original, x, y, 0, 3 * radius);
         var outerSum = crownSum(current, x, y, radius, 3 * radius);
         var count = crownCount(current, x, y, 0, radius);
@@ -27,12 +27,12 @@
       }
 
       function drawPoint() {
-        radius = document.getElementById("config").value;
-        var x = Math.floor(c.width * Math.random());
-        var y = Math.floor(c.height * Math.random());
-        var color = estimateColor(x, y);
+        var x = Math.floor(current.length * Math.random());
+        var y = Math.floor(current[x].length * Math.random());
+        var radius = 2;
+        var color = estimateColor(x, y, radius);
         crownSet(current, x, y, 0, radius, color);
-        drawCircle(x, y, color);
+        drawCircle(x, y, radius, color);
       }
 
       function isbaw(color) {
@@ -52,8 +52,8 @@
       }
 
       function drawFauvism() {
-        var x = Math.floor(c.width * Math.random());
-        var y = Math.floor(c.height * Math.random());
+        var x = Math.floor(current.length * Math.random());
+        var y = Math.floor(current[x].length * Math.random());
         if (isbaw(current[x][y])) {
           var color = baw2color(current[x][y][0]);
           spill(x, y, current[x][y][0], color);
@@ -61,15 +61,15 @@
         }
       }
 
-      function canvas2Array() {
-        var imgData = ctx.getImageData(0, 0, c.width, c.height).data;
-        var imgArray = new Array(c.width);
+      function canvas2Array(cvs) {
+        var imgData = ctx.getImageData(0, 0, cvs.width, cvs.height).data;
+        var imgArray = new Array(cvs.width);
         for (var i = 0; i < imgArray.length; ++i) {
-          imgArray[i] = new Array(c.height);
+          imgArray[i] = new Array(cvs.height);
           for (var j = 0; j < imgArray[i].length; ++j) {
             imgArray[i][j] = new Array(3);
             for (var k = 0; k < 3; ++k) {
-              imgArray[i][j][k] = imgData[4 * (i + j * c.width) + k];
+              imgArray[i][j][k] = imgData[4 * (i + j * cvs.width) + k];
             }
           }
         }
@@ -77,13 +77,14 @@
       }
 
       function array2Canvas(imgArray) {
-        var imgData = ctx.createImageData(c.width, c.height);
+        var imgData = ctx.createImageData(imgArray.length, imgArray[0].length);
         for (var i = 0; i < imgArray.length; ++i) {
           for (var j = 0; j < imgArray[i].length; ++j) {
             for (var k = 0; k < 3; ++k) {
-              imgData.data[4 * (i + j * c.width) + k] = imgArray[i][j][k];
+              imgData.data[4 * (i + j * imgArray.length) + k] =
+                imgArray[i][j][k];
             }
-            imgData.data[4 * (i + j * c.width) + 3] = 255;
+            imgData.data[4 * (i + j * imgArray.length) + 3] = 255;
           }
         }
         ctx.putImageData(imgData, 0, 0);
@@ -150,10 +151,10 @@
         }
       }
 
-      function solidImage(color) {
-        var image = new Array(c.width);
+      function solidImage(width, height, color) {
+        var image = new Array(width);
         for (var i = 0; i < image.length; ++i) {
-          image[i] = new Array(c.height);
+          image[i] = new Array(height);
           for (var j = 0; j < image[i].length; ++j) {
             image[i][j] = color;
           }
@@ -187,7 +188,7 @@
       }
 
       function blur(crisp) {
-        var radius = document.getElementById("config").value;
+        var radius = 2;
         var blurred = new Array(crisp.length);
         for (var i = 0; i < crisp.length; ++i) {
           blurred[i] = new Array(crisp[i].length);
@@ -244,9 +245,10 @@
         c.width = desiredDim;
         c.height = desiredDim;
         ctx.drawImage(img, offsetX, offsetY, desiredWidth, desiredHeight);
-        original = canvas2Array();
+        original = canvas2Array(c);
+        technique = document.getElementById("technique").value;
         if (technique == "pointillism") {
-          current = solidImage(imgAverage(original));
+          current = solidImage(desiredDim, desiredDim, imgAverage(original));
           array2Canvas(current);
           setInterval(drawPoint, 1);
         } else if (technique == "fauvism") {
@@ -273,19 +275,6 @@
         e.href = c.toDataURL("image/png");
       }
 
-      function handleTechnique(e) {
-        technique = e.value;
-        var configlabel = document.getElementById("configlabel");
-        var config = document.getElementById("config");
-        if (technique == "pointillism") {
-          configlabel.innerHTML = "Radius: ";
-          config.value = "2";
-        } else if (technique == "fauvism") {
-          configlabel.innerHTML = "Radius: ";
-          config.value = "2";
-        }
-      }
-
       function onload() {
         c = document.getElementById("canvium");
       }
@@ -294,15 +283,11 @@
   <body onload="onload()">
     <h1>Pointum</h1>
     <div>
-      <select id="technique" onchange="handleTechnique(this);">
+      <select id="technique">
         <option disabled selected value></option>
         <option value="pointillism">Pointillism</option>
         <option value="fauvism">Fauvism</option>
       </select>
-    </div>
-    <div>
-      <label for="config" id="configlabel"></label>
-      <input type="text" id="config" value=""/>
     </div>
     <div>
       <input type="file" id="filium" onchange="handleImage(this);"/>
