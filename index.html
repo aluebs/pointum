@@ -163,7 +163,7 @@
       }
 
       function luma(color) {
-        return 0.25 * color[0] + 0.65 * color[1] + 0.1 * color[2];
+        return 0.3 * color[0] + 0.6 * color[1] + 0.1 * color[2];
       }
 
       function blackAndWhite(colorImg) {
@@ -208,27 +208,27 @@
           return [255, 255, 0];
         } else {
           var options = [];
-          var x = (baw - 0.25 * 255) / 0.65;
+          var x = (baw - 0.3 * 255) / 0.6;
           if (x >= 0 && x <= 255) {
             options.push([255, x, 0]);
           }
-          x = (baw - 0.25 * 255) / 0.1;
+          x = (baw - 0.3 * 255) / 0.1;
           if (x >= 0 && x <= 255) {
             options.push([255, 0, x]);
           }
-          x = (baw - 0.65 * 255) / 0.25;
+          x = (baw - 0.6 * 255) / 0.3;
           if (x >= 0 && x <= 255) {
             options.push([x, 255, 0]);
           }
-          x = (baw - 0.65 * 255) / 0.1;
+          x = (baw - 0.6 * 255) / 0.1;
           if (x >= 0 && x <= 255) {
             options.push([0, 255, x]);
           }
-          x = (baw - 0.1 * 255) / 0.25;
+          x = (baw - 0.1 * 255) / 0.3;
           if (x >= 0 && x <= 255) {
             options.push([x, 0, 255]);
           }
-          x = (baw - 0.1 * 255) / 0.65;
+          x = (baw - 0.1 * 255) / 0.6;
           if (x >= 0 && x <= 255) {
             options.push([0, x, 255]);
           }
