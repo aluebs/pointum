@@ -187,8 +187,7 @@
         return baw;
       }
 
-      function blur(crisp) {
-        var radius = 2;
+      function blur(crisp, radius) {
         var blurred = new Array(crisp.length);
         for (var i = 0; i < crisp.length; ++i) {
           blurred[i] = new Array(crisp[i].length);
@@ -236,6 +235,22 @@
         }
       }
 
+      function quantizeColors(image, numColors) {
+        colors = [[0, 0, 0]];
+        for (var i = 1; i < numColors - 1; ++i) {
+          colors.push(baw2color(i * Math.round(256 / (numColors - 1))));
+        }
+        colors.push([255, 255, 255]);
+        quantized = blackAndWhite(blur(image, 4));
+        for (var i = 0; i < quantized.length; ++i) {
+          for (var j = 0; j < quantized[i].length; ++j) {
+            quantized[i][j] =
+              colors[Math.floor(numColors * quantized[i][j][0] / 256)];
+          }
+        }
+        return quantized;
+      }
+
       function loadImage() {
         var desiredDim = 512;
         var minDim = Math.min(img.width, img.height);
@@ -253,9 +268,11 @@
           array2Canvas(current);
           setInterval(drawPoint, 1);
         } else if (technique == "fauvism") {
-          current = blackAndWhite(blur(original));
+          current = blackAndWhite(blur(original, 3));
           array2Canvas(current);
           setInterval(drawFauvism, 1);
+        } else if (technique == "popart") {
+          array2Canvas(quantizeColors(original, 5));
         }
       }
 
@@ -288,6 +305,7 @@
         <option disabled selected value></option>
         <option value="pointillism">Pointillism</option>
         <option value="fauvism">Fauvism</option>
+        <option value="popart">Pop Art</option>
       </select>
     </div>
     <div>
